@@ -22,9 +22,9 @@ declare global {
 
 window.customCards = window.customCards || [];
 window.customCards.push({
-  type: "datetime-card",
-  name: "Datetime Card",
+  type: "maintenance-tracker-card",
+  name: "Maintenance Tracker Card",
   preview: true,
-  description: "Datetime card",
-  documentationURL: "https://github.com/a-p-z/datetime-card",
+  description: "Track recurring maintenance tasks like plant watering and filter cleaning",
+  documentationURL: "https://github.com/misterdev/datetime-card",
 });

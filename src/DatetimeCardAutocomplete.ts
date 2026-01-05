@@ -4,7 +4,7 @@ import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import type { IAutocompleteItem } from './types';
 import { clickOutsideDirective } from './directives/clickoutside-directive';
 
-@customElement('datetime-card-autocomplete')
+@customElement('maintenance-tracker-card-autocomplete')
 export class DatetimeCardAutocomplete extends LitElement {
   @property({ type: Array }) items: IAutocompleteItem[] = [];
   @property({ type: String }) label = '';
@@ -72,7 +72,10 @@ export class DatetimeCardAutocomplete extends LitElement {
               <li
                 class="item"
                 role="menuitem"
-                @click=${() => this.updateId(value)}>
+                @click=${() => {
+                  this.updateId(value);
+                  this.reset();
+                }}>
                 <span class="primary-text">${unsafeHTML(primaryText)}</span>
                 ${secondaryText ? html`
                   <span class="secondary-text">${unsafeHTML(secondaryText)}</span>
@@ -86,8 +89,9 @@ export class DatetimeCardAutocomplete extends LitElement {
 
   static styles = css`
     :host {
-      flex-grow: 1;
-      height: 56px;
+      display: block;
+      width: 100%;
+      position: relative;
     }
 
     ha-textfield {
@@ -97,11 +101,17 @@ export class DatetimeCardAutocomplete extends LitElement {
     .items-list {
       margin: 0;
       padding: 0;
-      position: relative;
-      z-index: 1;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      z-index: 100;
       border-left: 1px solid var(--input-outlined-idle-border-color);
       border-right: 1px solid var(--input-outlined-idle-border-color);
       border-bottom: 1px solid var(--input-outlined-idle-border-color);
+      background: var(--card-background-color, #fff);
+      max-height: 200px;
+      overflow-y: auto;
     }
 
     .item {

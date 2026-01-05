@@ -14,5 +14,5 @@ input_datetime:
 lovelace:
   mode: yaml
   resources:
-    - url: /local/datetime-card/datetime-card.js
+    - url: /local/maintenance-tracker-card.js
       type: module

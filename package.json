@@ -1,11 +1,10 @@
 {
-  "name": "datetime-card",
-  "version": "1.0.8",
-  "description": "A minimalistic card for Home Assistant Lovelace UI which shows how many days it has been between any input_datetime and today.",
+  "name": "maintenance-tracker-card",
+  "version": "1.0.0",
+  "description": "A Home Assistant card for tracking recurring maintenance tasks like plant watering, filter cleaning, and other scheduled upkeep.",
   "author": {
-    "email": "antpza@gmail.com",
-    "name": "apz",
-    "url": "https://github.com/a-p-z"
+    "name": "misterdev",
+    "url": "https://github.com/misterdev"
   },
   "scripts": {
     "build": "vite build",
@@ -24,7 +23,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/a-p-z/datetime-card.git"
+    "url": "https://github.com/misterdev/datetime-card.git"
   },
   "type": "module"
 }

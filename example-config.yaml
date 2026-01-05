@@ -1,0 +1,280 @@
+# Home Assistant Configuration Example
+# Add these to your configuration.yaml
+
+input_datetime:
+  # ============================================
+  # PLANTS - Monstera
+  # ============================================
+  plant_monstera_water:
+    name: Monstera - Water
+    has_date: true
+    has_time: false
+  plant_monstera_fertilize:
+    name: Monstera - Fertilize
+    has_date: true
+    has_time: false
+  plant_monstera_prune:
+    name: Monstera - Prune
+    has_date: true
+    has_time: false
+  plant_monstera_repot:
+    name: Monstera - Repot
+    has_date: true
+    has_time: false
+
+  # ============================================
+  # PLANTS - Other
+  # ============================================
+  plant_succulents_water:
+    name: Succulents - Water
+    has_date: true
+    has_time: false
+  plant_herbs_water:
+    name: Herbs - Water
+    has_date: true
+    has_time: false
+  plant_herbs_harvest:
+    name: Herbs - Harvest
+    has_date: true
+    has_time: false
+
+  # ============================================
+  # HOME APPLIANCES
+  # ============================================
+  washer_filter_cleaning:
+    name: Washer - Filter cleaning
+    has_date: true
+    has_time: false
+  dishwasher_filter_cleaning:
+    name: Dishwasher - Filter cleaning
+    has_date: true
+    has_time: false
+  fridge_coil_cleaning:
+    name: Fridge - Coil cleaning
+    has_date: true
+    has_time: false
+  vacuum_filter_replacement:
+    name: Vacuum - Filter replacement
+    has_date: true
+    has_time: false
+
+  # ============================================
+  # HVAC & AIR QUALITY
+  # ============================================
+  hvac_filter_change:
+    name: HVAC - Filter change
+    has_date: true
+    has_time: false
+  air_purifier_filter:
+    name: Air Purifier - Filter replacement
+    has_date: true
+    has_time: false
+
+  # ============================================
+  # CAR MAINTENANCE
+  # ============================================
+  car_oil_change:
+    name: Car - Oil change
+    has_date: true
+    has_time: false
+  car_tire_rotation:
+    name: Car - Tire rotation
+    has_date: true
+    has_time: false
+  car_wash:
+    name: Car - Wash
+    has_date: true
+    has_time: false
+
+  # ============================================
+  # PET CARE
+  # ============================================
+  pet_dog_vet_checkup:
+    name: Dog - Vet checkup
+    has_date: true
+    has_time: false
+  pet_dog_flea_treatment:
+    name: Dog - Flea treatment
+    has_date: true
+    has_time: false
+  pet_cat_litter_change:
+    name: Cat - Litter change
+    has_date: true
+    has_time: false
+
+  # ============================================
+  # HEALTH & PERSONAL
+  # ============================================
+  health_medication_refill:
+    name: Medication refill
+    has_date: true
+    has_time: false
+  health_dentist_checkup:
+    name: Dentist checkup
+    has_date: true
+    has_time: false
+  health_eye_exam:
+    name: Eye exam
+    has_date: true
+    has_time: false
+
+  # ============================================
+  # HOUSEHOLD SAFETY & MAINTENANCE
+  # ============================================
+  home_smoke_detector_test:
+    name: Smoke detector test
+    has_date: true
+    has_time: false
+  home_fire_extinguisher_check:
+    name: Fire extinguisher check
+    has_date: true
+    has_time: false
+  home_water_softener_salt:
+    name: Water softener - Add salt
+    has_date: true
+    has_time: false
+  home_trash_recycling:
+    name: Trash & Recycling day
+    has_date: true
+    has_time: false
+  home_clean_gutters:
+    name: Clean gutters
+    has_date: true
+    has_time: false
+
+
+# ============================================
+# EXAMPLE CARD CONFIGURATIONS
+# ============================================
+
+# Example 1: Plant Care Card
+# type: custom:maintenance-tracker-card
+# title: Plant Care
+# entities:
+#   - id: input_datetime.plant_monstera_water
+#     frequency_days: 7
+#     icon: mdi:watering-can
+#   - id: input_datetime.plant_monstera_fertilize
+#     frequency_days: 30
+#     icon: mdi:sprout
+#   - id: input_datetime.plant_monstera_prune
+#     frequency_days: 90
+#     icon: mdi:scissors-cutting
+#   - id: input_datetime.plant_monstera_repot
+#     frequency_days: 730
+#     icon: mdi:flower
+#   - id: input_datetime.plant_succulents_water
+#     frequency_days: 14
+#     icon: mdi:leaf
+#   - id: input_datetime.plant_herbs_water
+#     frequency_days: 3
+#     icon: mdi:sprout
+# layout: horizontal
+# show_next_date: true
+
+# Example 2: Home Appliances Card
+# type: custom:maintenance-tracker-card
+# title: Appliance Maintenance
+# entities:
+#   - id: input_datetime.washer_filter_cleaning
+#     frequency_days: 90
+#     icon: mdi:washing-machine
+#   - id: input_datetime.dishwasher_filter_cleaning
+#     frequency_days: 90
+#     icon: mdi:dishwasher
+#   - id: input_datetime.fridge_coil_cleaning
+#     frequency_days: 180
+#     icon: mdi:fridge
+#   - id: input_datetime.vacuum_filter_replacement
+#     frequency_days: 180
+#     icon: mdi:vacuum
+#   - id: input_datetime.hvac_filter_change
+#     frequency_days: 90
+#     icon: mdi:air-filter
+#   - id: input_datetime.air_purifier_filter
+#     frequency_days: 180
+#     icon: mdi:fan
+# layout: vertical
+# filter_overdue: true
+
+# Example 3: Car Maintenance Card
+# type: custom:maintenance-tracker-card
+# title: Car Maintenance
+# entities:
+#   - id: input_datetime.car_oil_change
+#     frequency_days: 90
+#     icon: mdi:oil
+#   - id: input_datetime.car_tire_rotation
+#     frequency_days: 180
+#     icon: mdi:car
+#   - id: input_datetime.car_wash
+#     frequency_days: 14
+#     icon: mdi:car-wash
+# layout: horizontal
+# show_next_date: true
+
+# Example 4: Pet Care Card
+# type: custom:maintenance-tracker-card
+# title: Pet Care
+# entities:
+#   - id: input_datetime.pet_dog_vet_checkup
+#     frequency_days: 365
+#     icon: mdi:dog
+#   - id: input_datetime.pet_dog_flea_treatment
+#     frequency_days: 30
+#     icon: mdi:paw
+#   - id: input_datetime.pet_cat_litter_change
+#     frequency_days: 7
+#     icon: mdi:cat
+# layout: horizontal
+
+# Example 5: Health Tracking Card
+# type: custom:maintenance-tracker-card
+# title: Health & Wellness
+# entities:
+#   - id: input_datetime.health_medication_refill
+#     frequency_days: 30
+#     icon: mdi:pill
+#   - id: input_datetime.health_dentist_checkup
+#     frequency_days: 180
+#     icon: mdi:medical-bag
+#   - id: input_datetime.health_eye_exam
+#     frequency_days: 730
+#     icon: mdi:medical-bag
+# layout: horizontal
+# show_next_date: true
+
+# Example 6: Home Safety Card
+# type: custom:maintenance-tracker-card
+# title: Home Safety
+# entities:
+#   - id: input_datetime.home_smoke_detector_test
+#     frequency_days: 30
+#     icon: mdi:fire-extinguisher
+#   - id: input_datetime.home_fire_extinguisher_check
+#     frequency_days: 365
+#     icon: mdi:fire-extinguisher
+#   - id: input_datetime.home_clean_gutters
+#     frequency_days: 180
+#     icon: mdi:home
+# layout: horizontal
+# filter_overdue: true
+
+# Example 7: All Overdue Items (Dashboard View)
+# type: custom:maintenance-tracker-card
+# title: Overdue Maintenance
+# entities:
+#   # Include all entities from above
+#   - id: input_datetime.plant_monstera_water
+#     frequency_days: 7
+#     icon: mdi:watering-can
+#   - id: input_datetime.car_oil_change
+#     frequency_days: 90
+#     icon: mdi:oil
+#   - id: input_datetime.hvac_filter_change
+#     frequency_days: 90
+#     icon: mdi:air-filter
+#   # ... add more as needed
+# layout: vertical
+# filter_overdue: true
+# show_next_date: false

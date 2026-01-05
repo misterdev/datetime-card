@@ -6,7 +6,7 @@ export default defineConfig({
       input: "src/main.ts",
       output: {
         dir: "dist",
-        entryFileNames: "datetime-card.js",
+        entryFileNames: "maintenance-tracker-card.js",
         format: "iife",
       },
     },

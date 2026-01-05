@@ -1,21 +1,21 @@
-# Datetime Card
+# Maintenance Tracker Card
 
-A minimalistic card for [Home Assistant](https://github.com/home-assistant/core) Lovelace UI which shows how many days it has been between any input_datetime and today.
+A Home Assistant Lovelace card for tracking recurring maintenance tasks. Perfect for monitoring plant watering schedules, filter replacements, and any other periodic maintenance that needs attention.
 
-Useful to remind you how many days it has been since you replaced your water filter or you watered your favoirite plants.
+This card helps you stay on top of routine tasks by showing how many days have passed since the last action or counting down to the next scheduled maintenance.
 
-![chinese_money](https://raw.githubusercontent.com/a-p-z/datetime-card/main/images/chinese_money.png "Chinese money")
+![maintenance tracker](https://raw.githubusercontent.com/misterdev/datetime-card/main/images/chinese_money.png "Maintenance Tracker")
 
 ## Installation
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
 
-Or you can download [datetime-card.js](https://github.com/a-p-z/datetime-card/releases/latest) to your `configuration/www` folder and add it as a resource:
+Or you can download [maintenance-tracker-card.js](https://github.com/misterdev/datetime-card/releases/latest) to your `configuration/www` folder and add it as a resource:
 
-1. Copy `datetime-card.js` to `/config/www/` directory
+1. Copy `maintenance-tracker-card.js` to `/config/www/` directory
 2. Go to **Settings → Dashboards → Resources** tab
 3. Click **"+ Add Resource"**
-4. Set URL: `/local/datetime-card.js`
+4. Set URL: `/local/maintenance-tracker-card.js`
 5. Set Resource type: **JavaScript Module**
 6. Click **Create**
 7. Hard refresh your browser
@@ -24,39 +24,36 @@ Or you can download [datetime-card.js](https://github.com/a-p-z/datetime-card/re
 
 - Open a dashboard in edit mode
 - Click on add a card
-- Search datetime-card
+- Search maintenance-tracker-card
 - Click on the card preview
 - Use the visual or the code editor to configure your card, as below
 
-![configuration](https://raw.githubusercontent.com/a-p-z/datetime-card/main/images/configuration.png "Configuration")
+![configuration](https://raw.githubusercontent.com/misterdev/datetime-card/main/images/configuration.png "Configuration")
 
 ```yaml
-type: custom:datetime-card
-title: Chinese money
+type: custom:maintenance-tracker-card
+title: Plant Maintenance
 image: /local/plant_chinese_money.png
-show_labels: false
 layout: horizontal
 entities:
-  - id: input_datetime.plant_chinese_money_w
-    threshold: 9
-  - id: input_datetime.plant_chinese_money_m
-    threshold: 5
-  - id: input_datetime.plant_chinese_money_f
-    threshold: 17
+  - id: input_datetime.plant_watering
+    frequency_days: 7
+    friendly_name: Water
+  - id: input_datetime.plant_fertilizing
+    frequency_days: 30
+    friendly_name: Fertilize
 ```
 
 ## Configuration Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `title` | string | "Datetime Card" | Card header text |
+| `title` | string | "Maintenance Tracker Card" | Card header text |
 | `image` | string | (demo image) | Optional image URL (e.g., `/local/plant.png`) |
 | `layout` | `horizontal` \| `vertical` | `horizontal` | Card layout orientation |
-| `reverse_order` | boolean | `false` | Reverse the layout direction |
-| `mode` | `since` \| `until` | `since` | **since**: count days from last action. **until**: countdown to deadline |
-| `show_months` | boolean | `false` | Format as "2 months, 3 days" instead of "63 days" |
-| `show_labels` | boolean | `false` | Show entity names overlaid on progress bars |
+| `image_position` | `start` \| `end` | `start` | Position of the image (before or after the list) |
 | `filter_overdue` | boolean | `false` | Only show items that are overdue |
+| `debug` | boolean | `false` | Show debug information below each row |
 | `entities` | array | required | Array of datetime entities to track |
 
 ### Entity Configuration
@@ -66,29 +63,63 @@ Each entity in the `entities` array has:
 | Option | Type | Required | Description |
 |--------|------|----------|-------------|
 | `id` | string | yes | The `input_datetime` entity ID |
-| `threshold` | number | yes | Warning threshold in days |
+| `frequency_days` | number | yes | How often this task should be done (in days) |
 | `friendly_name` | string | no | Override entity's friendly name |
+| `icon` | string | no | Custom MDI icon (e.g., `mdi:water`) |
 
-### Mode Explanation
+## How It Works
 
-- **`mode: since`** (default): Track "days since last action"
-  - Reset sets date to TODAY
-  - Counts UP from 0
-  - Bar turns red when days ≥ threshold
-  - Example: "Water plants every 7 days" → shows "5 days since last watered"
+The card displays each maintenance task with:
+- **Progress bar**: Visual indicator showing time elapsed since last completion
+- **Status text**: Shows "X days ago" and when the next maintenance is due
+- **Color coding**: Green when on schedule, red when overdue
 
-- **`mode: until`**: Track "days until deadline"
-  - Reset sets date to TODAY + threshold days
-  - Counts DOWN to 0
-  - Bar turns red when days ≥ 0 (overdue)
-  - Example: "Filter expires in 90 days" → shows "15 days remaining"
+### Updating Tasks
 
-## Actions
+Click on any task to open a dialog with two options:
 
-- reset date: just press and hold down the mouse button on the bar or on the days label to reset the entity to the current date.
+1. **Quick "Done" button**: Marks the task as completed today (most common use case)
+2. **Advanced mode**: Select a custom completion date if you completed it on a different day
 
-Note: the script needs tailoring for 3 things:
+## Setting Up Input DateTime Entities
 
-- the token variable: assign a 'long lived token' (can be created via your profile in the UI)
-- the dashboardUrl variable: define a working default for your setup (can always be overruled when calling the sevice)
-- Change the hard coded notifier to one of yours
+Before using this card, you need to create `input_datetime` entities in Home Assistant. These entities store the last completion date for each task.
+
+### Option 1: Via Configuration YAML
+
+Add to your `configuration.yaml`:
+
+```yaml
+input_datetime:
+  plant_watering:
+    name: Last Watered
+    has_date: true
+    has_time: false
+
+  plant_fertilizing:
+    name: Last Fertilized
+    has_date: true
+    has_time: false
+
+  filter_cleaning:
+    name: Filter Cleaned
+    has_date: true
+    has_time: false
+```
+
+Then restart Home Assistant.
+
+### Option 2: Via UI
+
+1. Go to **Settings → Devices & Services → Helpers**
+2. Click **"+ Create Helper"**
+3. Select **"Date and/or time"**
+4. Configure:
+   - Name: e.g., "Last Watered"
+   - Enable **Date** only (disable Time)
+5. Click **Create**
+6. Repeat for each maintenance task you want to track
+
+## Credits
+
+This card is a fork and enhancement of the original [datetime-card](https://github.com/a-p-z/datetime-card) by [a-p-z](https://github.com/a-p-z). Thank you for the original implementation!

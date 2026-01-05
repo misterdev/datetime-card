@@ -9,7 +9,7 @@ type InputEvent = Event & {
   target: HTMLInputElement;
 };
 
-@customElement('datetime-card-editor')
+@customElement('maintenance-tracker-card-editor')
 export class DatetimeCardEditor extends LitElement {
   @property({ type: Object }) config!: IConfig;
   @property({ type: Object }) hass!: IHass;
@@ -22,11 +22,20 @@ export class DatetimeCardEditor extends LitElement {
   @state() private filterOverdue = false;
   @state() private title = '';
   @state() private debug = false;
+  @state() private showNextDate = true;
 
   private hasInitialized = false;
 
   // Home Assistant interface method
   setConfig(config: IConfig): void {
+    // Ensure config has required type field
+    if (!config) {
+      config = {
+        type: "custom:maintenance-tracker-card",
+        entities: [],
+      };
+    }
+
     this.config = config;
 
     // Only initialize from config once, on first load
@@ -36,10 +45,66 @@ export class DatetimeCardEditor extends LitElement {
     }
   }
 
+  // Prevent editor from being used in code mode
+  static get properties() {
+    return {
+      hass: {},
+      config: {},
+    };
+  }
+
   get autocompleteItems(): IAutocompleteItem[] {
     return Object.keys(this.hass?.states || {})
       .filter((entity_id) => entity_id.startsWith("input_datetime"))
       .map((entity_id) => this.toAutocompleteItem(entity_id));
+  }
+
+  get iconAutocompleteItems(): IAutocompleteItem[] {
+    // Common MDI icons for maintenance tasks
+    const commonIcons = [
+      { value: 'mdi:sprout', name: 'Sprout (Plant)' },
+      { value: 'mdi:watering-can', name: 'Watering Can' },
+      { value: 'mdi:flower', name: 'Flower' },
+      { value: 'mdi:leaf', name: 'Leaf' },
+      { value: 'mdi:tree', name: 'Tree' },
+      { value: 'mdi:scissors-cutting', name: 'Scissors' },
+      { value: 'mdi:car', name: 'Car' },
+      { value: 'mdi:car-wash', name: 'Car Wash' },
+      { value: 'mdi:oil', name: 'Oil Change' },
+      { value: 'mdi:wrench', name: 'Wrench (Maintenance)' },
+      { value: 'mdi:tools', name: 'Tools' },
+      { value: 'mdi:home', name: 'Home' },
+      { value: 'mdi:home-circle', name: 'Home Circle' },
+      { value: 'mdi:calendar', name: 'Calendar' },
+      { value: 'mdi:calendar-check', name: 'Calendar Check' },
+      { value: 'mdi:pill', name: 'Pill (Medicine)' },
+      { value: 'mdi:medical-bag', name: 'Medical Bag' },
+      { value: 'mdi:water', name: 'Water' },
+      { value: 'mdi:filter', name: 'Filter' },
+      { value: 'mdi:air-filter', name: 'Air Filter' },
+      { value: 'mdi:vacuum', name: 'Vacuum' },
+      { value: 'mdi:broom', name: 'Broom' },
+      { value: 'mdi:washing-machine', name: 'Washing Machine' },
+      { value: 'mdi:lightbulb', name: 'Light Bulb' },
+      { value: 'mdi:battery', name: 'Battery' },
+      { value: 'mdi:trash-can', name: 'Trash Can' },
+      { value: 'mdi:recycle', name: 'Recycle' },
+      { value: 'mdi:dog', name: 'Dog (Pet Care)' },
+      { value: 'mdi:cat', name: 'Cat (Pet Care)' },
+      { value: 'mdi:paw', name: 'Paw (Pet)' },
+      { value: 'mdi:fire-extinguisher', name: 'Fire Extinguisher' },
+      { value: 'mdi:hvac', name: 'HVAC' },
+      { value: 'mdi:fan', name: 'Fan' },
+      { value: 'mdi:fridge', name: 'Fridge' },
+      { value: 'mdi:dishwasher', name: 'Dishwasher' },
+      { value: 'mdi:stove', name: 'Stove' },
+    ];
+
+    return commonIcons.map(icon => ({
+      primaryText: icon.name,
+      secondaryText: icon.value,
+      value: icon.value
+    }));
   }
 
   private initializeFromConfig(): void {
@@ -52,6 +117,7 @@ export class DatetimeCardEditor extends LitElement {
     this.filterOverdue = this.config.filter_overdue || false;
     this.title = this.config.title || "";
     this.debug = this.config.debug || false;
+    this.showNextDate = this.config.show_next_date ?? true;
   }
 
   private addDraggableEntity(): void {
@@ -64,7 +130,7 @@ export class DatetimeCardEditor extends LitElement {
   }
 
   private dispatchConfigChanged(): void {
-    const type = "custom:datetime-card";
+    const type = "custom:maintenance-tracker-card";
     const entities = this.draggableEntities.map((e) => this.toEntity(e));
     const config: IConfig = {
       entities,
@@ -74,6 +140,7 @@ export class DatetimeCardEditor extends LitElement {
       filter_overdue: this.filterOverdue,
       title: this.title,
       debug: this.debug,
+      show_next_date: this.showNextDate,
       type,
     };
 
@@ -138,8 +205,7 @@ export class DatetimeCardEditor extends LitElement {
     this.dispatchConfigChanged();
   }
 
-  private updateIcon(event: InputEvent, entity: DraggableEntity): void {
-    const icon = event.target.value;
+  private updateIcon(icon: string, entity: DraggableEntity): void {
     this.draggableEntities = this.draggableEntities.map((e) =>
       e === entity ? { ...e, icon } : e,
     );
@@ -148,6 +214,38 @@ export class DatetimeCardEditor extends LitElement {
 
   private updateImage(event: InputEvent): void {
     this.image = event.target.value;
+    this.dispatchConfigChanged();
+  }
+
+  private async handleImageUpload(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+
+    if (!file) return;
+
+    // Check if it's an image
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    // Check file size (limit to 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Image size must be less than 2MB');
+      return;
+    }
+
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      this.image = e.target?.result as string;
+      this.dispatchConfigChanged();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  private clearImage(): void {
+    this.image = '';
     this.dispatchConfigChanged();
   }
 
@@ -179,21 +277,62 @@ export class DatetimeCardEditor extends LitElement {
     this.dispatchConfigChanged();
   }
 
+  private updateShowNextDate(event: InputEvent): void {
+    this.showNextDate = event.target.checked;
+    this.dispatchConfigChanged();
+  }
+
   render() {
     return html`
-      <ha-textfield
-        data-testid="title"
-        label="Title (optional)"
-        .value=${this.title}
-        @input=${this.updateTitle}>
-      </ha-textfield>
+      <div class="title-section">
+        <ha-textfield
+          data-testid="title"
+          label="Title (optional)"
+          .value=${this.title}
+          @input=${this.updateTitle}>
+        </ha-textfield>
+      </div>
 
-      <ha-textfield
-        data-testid="image"
-        label="Image (optional)"
-        .value=${this.image}
-        @input=${this.updateImage}>
-      </ha-textfield>
+      <div class="image-section">
+        <label class="section-label">Image</label>
+
+        ${this.image ? html`
+          <div class="image-preview">
+            <img src="${this.image}" alt="Preview" />
+            <button class="clear-image-button" @click=${this.clearImage} title="Remove image">
+              <ha-icon icon="mdi:close"></ha-icon>
+            </button>
+          </div>
+        ` : ''}
+
+        <div class="image-inputs">
+          <ha-textfield
+            data-testid="image-url"
+            label="Image URL"
+            .value=${this.image}
+            @input=${this.updateImage}>
+          </ha-textfield>
+
+          <div class="upload-divider">
+            <span>or</span>
+          </div>
+
+          <label class="file-upload-label">
+            <input
+              type="file"
+              accept="image/*"
+              @change=${this.handleImageUpload}
+              class="file-input"
+            />
+            <span class="file-upload-button">
+              <ha-icon icon="mdi:upload"></ha-icon>
+              Upload Image
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <h3>Settings</h3>
 
       <section class="options">
         <div class="option-row">
@@ -239,6 +378,16 @@ export class DatetimeCardEditor extends LitElement {
           </ha-switch>
           <label for="debug-switch">Show debug information</label>
         </div>
+
+        <div class="option-row">
+          <ha-switch
+            id="show-next-date-switch"
+            aria-label="Show next date in status"
+            ?checked=${this.showNextDate}
+            @change=${this.updateShowNextDate}>
+          </ha-switch>
+          <label for="show-next-date-switch">Show next date in status</label>
+        </div>
       </section>
 
       <h3>Entities (required)</h3>
@@ -253,13 +402,13 @@ export class DatetimeCardEditor extends LitElement {
                 <div class="handle"></div>
               ` : html`<div class="handle"></div>`}
 
-              <datetime-card-autocomplete
-                data-testid="datetime-card-autocomplete-${index}"
+              <maintenance-tracker-card-autocomplete
+                data-testid="maintenance-tracker-card-autocomplete-${index}"
                 label="Entity"
                 .items=${this.autocompleteItems}
                 .value=${entity.id}
                 .updateId=${(id: string) => this.updateId(id, entity)}>
-              </datetime-card-autocomplete>
+              </maintenance-tracker-card-autocomplete>
 
               <ha-textfield
                 data-testid="frequency-${index}"
@@ -289,12 +438,13 @@ export class DatetimeCardEditor extends LitElement {
                 @input=${(event: Event) => this.updateFriendlyName(event as InputEvent, entity)}>
               </ha-textfield>
 
-              <ha-textfield
-                data-testid="icon-${index}"
-                label="Icon (optional, e.g. mdi:sprout)"
+              <maintenance-tracker-card-autocomplete
+                data-testid="icon-autocomplete-${index}"
+                label="Icon (optional)"
+                .items=${this.iconAutocompleteItems}
                 .value=${entity.icon || ""}
-                @input=${(event: Event) => this.updateIcon(event as InputEvent, entity)}>
-              </ha-textfield>
+                .updateId=${(icon: string) => this.updateIcon(icon, entity)}>
+              </maintenance-tracker-card-autocomplete>
 
               <div></div>
             </div>
@@ -321,9 +471,20 @@ export class DatetimeCardEditor extends LitElement {
       flex-direction: column;
     }
 
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 24px 0 12px 0;
+      color: var(--primary-text-color);
+    }
+
     ha-textfield {
       margin-top: 3px;
       margin-bottom: 5px;
+    }
+
+    .title-section {
+      margin-bottom: 8px;
     }
 
     ha-switch {
@@ -338,30 +499,49 @@ export class DatetimeCardEditor extends LitElement {
     .entity {
       display: grid;
       grid-template-columns: auto 1fr auto auto;
-      margin-bottom: 5px;
+      margin-bottom: 16px;
+      padding: 16px;
+      background: var(--card-background-color, #fff);
+      border: 1px solid var(--divider-color, rgba(255, 255, 255, 0.1));
+      border-radius: var(--ha-card-border-radius, 12px);
+      gap: 8px;
+      transition: box-shadow 180ms ease-in-out;
+    }
+
+    .entity:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .handle {
       padding-right: 8px;
-      padding-top: 16px;
+      padding-top: 8px;
       width: 32px;
     }
 
     .frequency-textfield {
       margin: 0 0 0 5px;
-      max-width: 80px;
+      max-width: 120px;
     }
 
     .plus {
       display: flex;
       justify-content: flex-end;
+      margin-top: 8px;
+    }
+
+    .entities {
+      margin-top: 8px;
     }
 
     .options {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 16px;
       margin: 16px 0;
+      padding: 16px;
+      background: var(--card-background-color, #fff);
+      border: 1px solid var(--divider-color, rgba(255, 255, 255, 0.1));
+      border-radius: var(--ha-card-border-radius, 12px);
     }
 
     .option-row {
@@ -376,12 +556,124 @@ export class DatetimeCardEditor extends LitElement {
 
     .select {
       flex: 1;
-      padding: 8px;
-      border-radius: 4px;
-      border: 1px solid var(--divider-color, #ccc);
+      padding: 10px 12px;
+      border-radius: var(--ha-card-border-radius, 12px);
+      border: 2px solid var(--divider-color, #ccc);
       background: var(--card-background-color, #fff);
       color: var(--primary-text-color);
       font-size: 14px;
+      transition: border-color 180ms ease-in-out;
+      cursor: pointer;
+    }
+
+    .select:focus {
+      outline: none;
+      border-color: var(--primary-color);
+    }
+
+    .image-section {
+      margin: 16px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 16px;
+      background: var(--card-background-color, #fff);
+      border: 1px solid var(--divider-color, rgba(255, 255, 255, 0.1));
+      border-radius: var(--ha-card-border-radius, 12px);
+    }
+
+    .section-label {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--primary-text-color);
+      margin-bottom: 4px;
+    }
+
+    .image-preview {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      border-radius: var(--ha-card-border-radius, 12px);
+      overflow: hidden;
+      border: 2px solid var(--divider-color, #ccc);
+    }
+
+    .image-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .clear-image-button {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 180ms ease-in-out;
+    }
+
+    .clear-image-button:hover {
+      background: rgba(0, 0, 0, 0.9);
+      transform: scale(1.1);
+    }
+
+    .clear-image-button ha-icon {
+      --mdc-icon-size: 20px;
+    }
+
+    .image-inputs {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .upload-divider {
+      text-align: center;
+      color: var(--secondary-text-color);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .file-input {
+      display: none;
+    }
+
+    .file-upload-label {
+      cursor: pointer;
+    }
+
+    .file-upload-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border: 2px dashed var(--divider-color, #ccc);
+      border-radius: var(--ha-card-border-radius, 12px);
+      background: transparent;
+      color: var(--primary-text-color);
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 180ms ease-in-out;
+    }
+
+    .file-upload-button:hover {
+      border-color: var(--primary-color);
+      background: rgba(var(--rgb-primary-color, 13, 160, 53), 0.04);
+    }
+
+    .file-upload-button ha-icon {
+      --mdc-icon-size: 20px;
     }
   `;
 }

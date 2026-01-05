@@ -1,6 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import type { IEntity, IHass, IDatetimeState } from '../types';
+import type { IEntity, IHass, IDatetimeState, IConfig } from '../types';
 import { calculateDatetimeState, formatDateShort, resetDate } from './datetime';
 
 @customElement('datetime-row')
@@ -8,6 +8,7 @@ export class DatetimeRow extends LitElement {
   @property({ type: Object }) entity!: IEntity;
   @property({ type: Object }) hass!: IHass;
   @property({ type: Boolean }) debug = false;
+  @property({ type: Object }) config!: IConfig;
 
   @state() private dialogOpen = false;
   @state() private selectedDate = '';
@@ -39,35 +40,46 @@ export class DatetimeRow extends LitElement {
   }
 
   get barColor(): string {
-    return this.state.isOverdue ? "#df4c1e" : "#0da035";
+    return this.state.isOverdue
+      ? "rgb(var(--rgb-warning, 223, 76, 30))"
+      : "rgb(var(--rgb-success, 13, 160, 53))";
   }
 
   get statusText(): string {
-    const daysSince = this.state.daysSinceLastEvent;
     const daysUntil = this.state.daysUntilNextEvent;
+
+    // Check if we should show the next date (entity config overrides global config)
+    const showNextDate = this.entity.show_next_date ?? this.config?.show_next_date ?? true;
 
     // Validate date before formatting
     const nextDate = this.state.nextEventDate && !isNaN(this.state.nextEventDate.getTime())
       ? formatDateShort(this.state.nextEventDate)
       : 'Unknown';
 
-    const sinceText = daysSince === 0 ? 'today' :
-                      daysSince === 1 ? '1 day ago' :
-                      `${daysSince} days ago`;
-
     if (this.state.isOverdue) {
-      const overdueDays = Math.abs(daysUntil);
-      const overdueText = overdueDays === 1 ? '1 day' : `${overdueDays} days`;
-      return `${sinceText} • Overdue by ${overdueText}`;
+      // For overdue, show the date without "Overdue by X days" (that's in the badge)
+      return showNextDate ? `Due ${nextDate}` : 'Overdue';
     } else {
-      const untilText = daysUntil === 0 ? 'today' :
-                        daysUntil === 1 ? 'tomorrow' :
-                        `in ${daysUntil} days`;
-      return `${sinceText} • Due ${nextDate} (${untilText})`;
+      // Simple format: "Due in 5d" or "Due Apr 5 (in 5d)"
+      const untilText = daysUntil === 0 ? 'Today' :
+                        daysUntil === 1 ? '1d' :
+                        `${daysUntil}d`;
+
+      if (showNextDate) {
+        return `Due ${nextDate} (in ${untilText})`;
+      } else {
+        return `Due in ${untilText}`;
+      }
     }
   }
 
-  private handleClick(event: Event): void {
+  get overdueBadge(): string {
+    if (!this.state.isOverdue) return '';
+    const overdueDays = Math.abs(this.state.daysUntilNextEvent);
+    return overdueDays === 1 ? '1d' : `${overdueDays}d`;
+  }
+
+  private handleClick(): void {
     // Format current last event date as YYYY-MM-DD
     const lastDate = this.state.lastEventDate;
     const year = lastDate.getFullYear();
@@ -124,17 +136,8 @@ export class DatetimeRow extends LitElement {
         </ha-icon>
 
         <div class="content">
-          <div class="header">
-            <span class="name">${this.name}</span>
-            <span class="status">${this.statusText}</span>
-          </div>
-
-          <div class="bar-container">
-            <div
-              class="bar"
-              style="width: ${this.barWidth}%; background: ${this.barColor}">
-            </div>
-          </div>
+          <div class="name">${this.name}</div>
+          <div class="status">${this.statusText}</div>
 
           ${this.debug ? html`
             <div class="debug">
@@ -144,6 +147,15 @@ export class DatetimeRow extends LitElement {
             </div>
           ` : ''}
         </div>
+
+        ${this.overdueBadge ? html`
+          <span class="overdue-badge">${this.overdueBadge}</span>
+        ` : ''}
+
+        <ha-icon
+          class="chevron"
+          icon="mdi:chevron-right">
+        </ha-icon>
       </div>
 
       ${this.dialogOpen ? html`
@@ -201,62 +213,65 @@ export class DatetimeRow extends LitElement {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 8px 16px;
+      padding: 12px;
       cursor: pointer;
-      border-radius: 4px;
-      transition: background-color 0.2s;
+      border-radius: var(--ha-card-border-radius, 12px);
+      transition: background-color 180ms ease-in-out;
     }
 
     .row:hover {
-      background-color: rgba(255, 255, 255, 0.05);
+      background-color: rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.04);
     }
 
     .icon {
       flex-shrink: 0;
-      --mdc-icon-size: 20px;
+      --mdc-icon-size: 24px;
     }
 
     .content {
       flex: 1;
       min-width: 0;
       overflow: hidden;
-    }
-
-    .header {
       display: flex;
       flex-direction: column;
       gap: 4px;
-      margin-bottom: 6px;
-      min-width: 0;
     }
 
     .name {
       font-weight: 500;
-      font-size: 14px;
+      font-size: 15px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
+    .overdue-badge {
+      display: flex;
+      align-items: center;
+      padding: 4px 8px;
+      background: rgb(var(--rgb-warning, 223, 76, 30));
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: var(--ha-card-border-radius, 12px);
+      white-space: nowrap;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
     .status {
-      font-size: 11px;
+      font-size: 13px;
       color: var(--secondary-text-color);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    .bar-container {
-      height: 4px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-
-    .bar {
-      height: 100%;
-      transition: width 0.3s ease;
-      border-radius: 2px;
+    .chevron {
+      flex-shrink: 0;
+      --mdc-icon-size: 20px;
+      color: var(--secondary-text-color);
+      opacity: 0.5;
     }
 
     .debug {
@@ -277,7 +292,7 @@ export class DatetimeRow extends LitElement {
       align-items: center;
       justify-content: center;
       z-index: 1000;
-      animation: fadeIn 0.2s ease;
+      animation: fadeIn 180ms ease-in-out;
     }
 
     @keyframes fadeIn {
@@ -287,12 +302,12 @@ export class DatetimeRow extends LitElement {
 
     .dialog {
       background: var(--card-background-color, #fff);
-      border-radius: 12px;
+      border-radius: var(--ha-card-border-radius, 12px);
       min-width: 320px;
       max-width: 400px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
       overflow: hidden;
-      animation: slideUp 0.2s ease;
+      animation: slideUp 180ms ease-in-out;
     }
 
     @keyframes slideUp {
@@ -304,7 +319,7 @@ export class DatetimeRow extends LitElement {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      padding: 20px 20px 16px 20px;
+      padding: 20px;
       border-bottom: 1px solid var(--divider-color, rgba(255, 255, 255, 0.1));
     }
 
@@ -318,7 +333,7 @@ export class DatetimeRow extends LitElement {
     .dialog-icon {
       flex-shrink: 0;
       --mdc-icon-size: 24px;
-      color: var(--primary-color, #0da035);
+      color: var(--primary-color);
     }
 
     .dialog-entity-name {
@@ -339,18 +354,18 @@ export class DatetimeRow extends LitElement {
       gap: 6px;
       padding: 8px 12px;
       border: none;
-      border-radius: 8px;
-      background: var(--primary-color, #0da035);
-      color: white;
+      border-radius: var(--ha-card-border-radius, 12px);
+      background: var(--primary-color);
+      color: var(--text-primary-color, white);
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 180ms ease-in-out;
       white-space: nowrap;
     }
 
     .quick-done-button:hover {
-      background: var(--primary-color-dark, #0b8a2d);
+      opacity: 0.9;
       transform: scale(1.02);
     }
 
@@ -359,7 +374,7 @@ export class DatetimeRow extends LitElement {
     }
 
     .dialog-body {
-      padding: 8px 20px 12px 20px;
+      padding: 12px 20px;
     }
 
     .advanced-toggle {
@@ -367,19 +382,19 @@ export class DatetimeRow extends LitElement {
       display: flex;
       align-items: center;
       gap: 6px;
-      padding: 8px 8px;
+      padding: 8px;
       border: none;
-      border-radius: 6px;
+      border-radius: var(--ha-card-border-radius, 12px);
       background: transparent;
       color: var(--secondary-text-color);
       font-size: 13px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 180ms ease-in-out;
       text-align: left;
     }
 
     .advanced-toggle:hover {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.04);
       color: var(--primary-text-color);
     }
 
@@ -389,7 +404,7 @@ export class DatetimeRow extends LitElement {
 
     .advanced-content {
       margin-top: 12px;
-      animation: slideDown 0.2s ease;
+      animation: slideDown 180ms ease-in-out;
     }
 
     @keyframes slideDown {
@@ -416,24 +431,24 @@ export class DatetimeRow extends LitElement {
       padding: 12px;
       font-size: 15px;
       border: 2px solid var(--divider-color, #ccc);
-      border-radius: 8px;
+      border-radius: var(--ha-card-border-radius, 12px);
       background: var(--card-background-color, #fff);
       color: var(--primary-text-color);
       cursor: pointer;
-      transition: border-color 0.2s;
+      transition: border-color 180ms ease-in-out;
       box-sizing: border-box;
       margin-bottom: 12px;
     }
 
     .date-input:focus {
       outline: none;
-      border-color: var(--primary-color, #0da035);
+      border-color: var(--primary-color);
     }
 
     .dialog-actions {
       display: flex;
       gap: 8px;
-      padding: 8px 20px 16px 20px;
+      padding: 12px 20px 20px 20px;
       justify-content: flex-end;
     }
 
@@ -441,11 +456,11 @@ export class DatetimeRow extends LitElement {
     .secondary-button {
       padding: 10px 20px;
       border: none;
-      border-radius: 8px;
+      border-radius: var(--ha-card-border-radius, 12px);
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 180ms ease-in-out;
     }
 
     .secondary-button {
@@ -454,16 +469,16 @@ export class DatetimeRow extends LitElement {
     }
 
     .secondary-button:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.08);
     }
 
     .primary-button {
-      background: var(--primary-color, #0da035);
-      color: white;
+      background: var(--primary-color);
+      color: var(--text-primary-color, white);
     }
 
     .primary-button:hover {
-      background: var(--primary-color-dark, #0b8a2d);
+      opacity: 0.9;
       transform: scale(1.02);
     }
 

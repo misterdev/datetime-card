@@ -5,14 +5,15 @@ export interface IAutocompleteItem {
 }
 
 export interface IConfig {
+  type: "custom:maintenance-tracker-card";
   entities?: IEntity[];
   layout?: "horizontal" | "vertical";
   image_position?: "start" | "end";
   image?: string;
-  readonly type: "custom:datetime-card";
   filter_overdue?: boolean;
   title?: string;
   debug?: boolean;
+  show_next_date?: boolean;
 }
 
 export interface IDatetimeState {
@@ -28,6 +29,7 @@ export interface IEntity {
   id: string;
   frequency_days: number;
   icon?: string;
+  show_next_date?: boolean;
 }
 
 export interface IHass {

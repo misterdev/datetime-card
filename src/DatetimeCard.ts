@@ -17,7 +17,7 @@ function getDefaultEntities(hass: IHass): IEntity[] {
   return [{ id, frequency_days }];
 }
 
-@customElement('datetime-card')
+@customElement('maintenance-tracker-card')
 export class DatetimeCard extends LitElement {
   @property({ type: Object }) config!: IConfig;
   @property({ type: Object }) hass!: IHass;
@@ -29,7 +29,17 @@ export class DatetimeCard extends LitElement {
 
   // Home Assistant interface method
   static getConfigElement(): HTMLElement {
-    return document.createElement("datetime-card-editor");
+    return document.createElement("maintenance-tracker-card-editor");
+  }
+
+  // Home Assistant interface method - provide stub config for card picker
+  static getStubConfig(): IConfig {
+    return {
+      type: "custom:maintenance-tracker-card",
+      entities: [],
+      layout: "horizontal",
+      show_next_date: true,
+    };
   }
 
   get entities(): IEntity[] {
@@ -44,7 +54,7 @@ export class DatetimeCard extends LitElement {
   }
 
   get header(): string {
-    return this.config.title || "Datetime Card";
+    return this.config.title || "Maintenance Tracker Card";
   }
 
   get filterOverdue(): boolean {
@@ -56,9 +66,7 @@ export class DatetimeCard extends LitElement {
   }
 
   get src(): string {
-    return this.config.image !== undefined
-      ? this.config.image
-      : "https://demo.home-assistant.io/stub_config/t-shirt-promo.png";
+    return this.config.image || "";
   }
 
   render() {
@@ -83,7 +91,8 @@ export class DatetimeCard extends LitElement {
                 <datetime-row
                   .entity=${entity}
                   .hass=${this.hass}
-                  .debug=${this.debug}>
+                  .debug=${this.debug}
+                  .config=${this.config}>
                 </datetime-row>
               `;
             })}

@@ -119,6 +119,16 @@ function format(date: Date): string {
 }
 
 function formatDateShort(date: Date): string {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const compareDate = new Date(date);
+  compareDate.setHours(0, 0, 0, 0);
+
+  // Check if date is today
+  if (compareDate.getTime() === today.getTime()) {
+    return 'Today';
+  }
+
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   return `${months[date.getMonth()]} ${date.getDate()}`;
 }

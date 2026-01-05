@@ -6,5 +6,5 @@ services:
     ports:
       - 8123:8123
     volumes:
-      - ./dist:/config/www/datetime-card/:ro
+      - ./dist:/config/www/maintenance-tracker-card/:ro
       - ./configuration.yaml:/config/configuration.yaml:ro
