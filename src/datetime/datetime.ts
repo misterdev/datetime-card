@@ -26,25 +26,30 @@ function getState(hass: IHass, entity: IEntity): number {
     ? new Date(hass.states[entity.id].state)
     : new Date();
   const currentDate = new Date();
+
+  // Set both dates to midnight to compare only the date portion
+  entityDate.setHours(0, 0, 0, 0);
+  currentDate.setHours(0, 0, 0, 0);
+
   const differenceInMilliseconds = currentDate.getTime() - entityDate.getTime();
   const differenceInDays = differenceInMilliseconds / (1000 * 60 * 60 * 24);
   return Math.floor(differenceInDays);
 }
 
-function isExpired(max: number, resetForward: boolean, state: number): boolean {
-  return resetForward ? state >= 0 : state >= max;
+function isExpired(threshold: number, isUntilMode: boolean, state: number): boolean {
+  return isUntilMode ? state >= 0 : state >= threshold;
 }
 
 function resetDate(
   entity: IEntity,
   event: Event,
   hass: IHass,
-  resetForward: 0 | 1,
+  isUntilMode: 0 | 1,
 ): void {
   const friendly_name = hass.states[entity.id].attributes.friendly_name;
   const entity_id = entity.id;
   const targetDate = new Date();
-  targetDate.setDate(targetDate.getDate() + resetForward * entity.max);
+  targetDate.setDate(targetDate.getDate() + isUntilMode * entity.threshold);
   const confirmation = `Do you want to reset ${friendly_name} to ${format(targetDate)}?`;
   const element = setDatetimeServiceFactory(
     hass,

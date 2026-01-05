@@ -1,7 +1,7 @@
 export class DraggableEntity {
   friendly_name?: string;
   id: string = "";
-  max: string = "";
+  threshold: string = "";
 
   constructor(public key: number) {
     this.key = key;

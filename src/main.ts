@@ -1,9 +1,10 @@
-export * from "./datetime/DatetimeBar.svelte";
-export * from "./datetime/DatetimeIcon.svelte";
-export * from "./datetime/DatetimeLabel.svelte";
-export * from "./DatetimeCard.svelte";
-export * from "./DatetimeCardAutocomplete.svelte";
-export * from "./DatetimeCardEditor.svelte";
+// Import all converted components
+import './datetime/DatetimeIcon';
+import './datetime/DatetimeLabel';
+import './datetime/DatetimeBar';
+import './DatetimeCard';
+import './DatetimeCardAutocomplete';
+import './DatetimeCardEditor';
 
 type CustomCard = {
   type: string;

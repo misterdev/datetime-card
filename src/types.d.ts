@@ -6,20 +6,22 @@ export interface IAutocompleteItem {
 
 export interface IConfig {
   entities?: IEntity[];
-  flex_direction: "column" | "column-reverse" | "row" | "row-reverse";
-  format_label?: boolean;
+  layout?: "horizontal" | "vertical";
+  reverse_order?: boolean;
+  show_months?: boolean;
   image?: string;
   readonly type: "custom:datetime-card";
-  reset_forward?: boolean;
-  show_expired_only?: boolean;
-  show_names: boolean;
+  mode?: "since" | "until";
+  filter_overdue?: boolean;
+  show_labels?: boolean;
   title?: string;
+  debug?: boolean;
 }
 
 export interface IEntity {
   friendly_name?: string;
   id: string;
-  max: number;
+  threshold: number;
 }
 
 export interface IHass {
