@@ -7,21 +7,26 @@ export interface IAutocompleteItem {
 export interface IConfig {
   entities?: IEntity[];
   layout?: "horizontal" | "vertical";
-  reverse_order?: boolean;
-  show_months?: boolean;
+  image_position?: "start" | "end";
   image?: string;
   readonly type: "custom:datetime-card";
-  mode?: "since" | "until";
   filter_overdue?: boolean;
-  show_labels?: boolean;
   title?: string;
   debug?: boolean;
+}
+
+export interface IDatetimeState {
+  daysSinceLastEvent: number;
+  daysUntilNextEvent: number;
+  nextEventDate: Date;
+  lastEventDate: Date;
+  isOverdue: boolean;
 }
 
 export interface IEntity {
   friendly_name?: string;
   id: string;
-  threshold: number;
+  frequency_days: number;
 }
 
 export interface IHass {

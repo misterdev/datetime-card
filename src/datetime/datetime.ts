@@ -1,4 +1,4 @@
-import type { IEntity, IHass } from "../types";
+import type { IEntity, IHass, IDatetimeState } from "../types";
 import { setDatetimeServiceFactory } from "../hass";
 
 function formatDayString(days: number, formatLabel: boolean): string {
@@ -21,7 +21,7 @@ function formatDayString(days: number, formatLabel: boolean): string {
   return `${sign}${months} ${monthString}, ${remainingDays} ${dayString}`;
 }
 
-function getState(hass: IHass, entity: IEntity): number {
+function calculateDatetimeState(hass: IHass, entity: IEntity): IDatetimeState {
   const entityDate = hass.states?.[entity.id]?.state
     ? new Date(hass.states[entity.id].state)
     : new Date();
@@ -32,35 +32,81 @@ function getState(hass: IHass, entity: IEntity): number {
   currentDate.setHours(0, 0, 0, 0);
 
   const differenceInMilliseconds = currentDate.getTime() - entityDate.getTime();
-  const differenceInDays = differenceInMilliseconds / (1000 * 60 * 60 * 24);
-  return Math.floor(differenceInDays);
+  const daysSinceLastEvent = Math.floor(differenceInMilliseconds / (1000 * 60 * 60 * 24));
+
+  // Validate frequency_days and calculate next event date
+  const frequencyDays = entity.frequency_days && entity.frequency_days > 0 ? entity.frequency_days : 7;
+  const nextEventDate = new Date(entityDate);
+  nextEventDate.setDate(nextEventDate.getDate() + frequencyDays);
+
+  const diffToNext = nextEventDate.getTime() - currentDate.getTime();
+  const daysUntilNextEvent = Math.floor(diffToNext / (1000 * 60 * 60 * 24));
+  const isOverdue = daysUntilNextEvent < 0;
+
+  return {
+    daysSinceLastEvent,
+    daysUntilNextEvent,
+    nextEventDate,
+    lastEventDate: entityDate,
+    isOverdue,
+  };
 }
 
-function isExpired(threshold: number, isUntilMode: boolean, state: number): boolean {
-  return isUntilMode ? state >= 0 : state >= threshold;
+function getState(hass: IHass, entity: IEntity): number {
+  const state = calculateDatetimeState(hass, entity);
+  return state.daysSinceLastEvent;
+}
+
+function isExpired(state: IDatetimeState): boolean {
+  return state.isOverdue;
 }
 
 function resetDate(
   entity: IEntity,
-  event: Event,
+  eventOrDate: Event | Date,
   hass: IHass,
-  isUntilMode: 0 | 1,
+  skipConfirmation: boolean = false,
 ): void {
-  const friendly_name = hass.states[entity.id].attributes.friendly_name;
+  // Handle Event type (hold-to-reset)
+  if (eventOrDate instanceof Event) {
+    eventOrDate.stopPropagation();
+    eventOrDate.preventDefault();
+  }
+
+  const friendly_name = hass.states[entity.id]?.attributes?.friendly_name || 'this item';
   const entity_id = entity.id;
-  const targetDate = new Date();
-  targetDate.setDate(targetDate.getDate() + isUntilMode * entity.threshold);
-  const confirmation = `Do you want to reset ${friendly_name} to ${format(targetDate)}?`;
+
+  // Use provided date or default to today
+  const targetDate = eventOrDate instanceof Date ? eventOrDate : new Date();
+
+  // If skipConfirmation, call service directly
+  if (skipConfirmation) {
+    hass.callService('input_datetime', 'set_datetime', {
+      entity_id,
+      date: format(targetDate),
+    });
+    return;
+  }
+
+  // Otherwise use confirmation dialog
+  const confirmation = `Do you want to ${eventOrDate instanceof Date ? 'set' : 'reset'} ${friendly_name} to ${format(targetDate)}?`;
   const element = setDatetimeServiceFactory(
     hass,
     confirmation,
     entity_id,
     format(targetDate),
   );
-  const target = event.target as HTMLElement;
-  target.appendChild(element);
+
+  // Use document.body to avoid shadow DOM issues
+  document.body.appendChild(element);
   element._buttonTapped();
-  target.removeChild(element);
+
+  // Remove element after a delay to allow service call to complete
+  setTimeout(() => {
+    if (element.parentNode) {
+      document.body.removeChild(element);
+    }
+  }, 100);
 }
 
 function format(date: Date): string {
@@ -72,4 +118,9 @@ function format(date: Date): string {
   return `${year}-${monthPadded}-${dayPadded}`;
 }
 
-export { formatDayString, getState, isExpired, resetDate };
+function formatDateShort(date: Date): string {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${months[date.getMonth()]} ${date.getDate()}`;
+}
+
+export { formatDayString, getState, isExpired, resetDate, calculateDatetimeState, formatDateShort };

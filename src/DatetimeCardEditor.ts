@@ -14,15 +14,12 @@ export class DatetimeCardEditor extends LitElement {
   @property({ type: Object }) config!: IConfig;
   @property({ type: Object }) hass!: IHass;
 
-  @state() private isVertical = false;
+  @state() private layout: "horizontal" | "vertical" = "horizontal";
   @state() private draggableEntities: DraggableEntity[] = [];
-  @state() private showMonths = false;
   @state() private image = '';
   @state() private key = 1;
-  @state() private isUntilMode = false;
-  @state() private reverseOrder = false;
+  @state() private imagePosition: "start" | "end" = "start";
   @state() private filterOverdue = false;
-  @state() private showLabels = false;
   @state() private title = '';
   @state() private debug = false;
 
@@ -44,16 +41,13 @@ export class DatetimeCardEditor extends LitElement {
   }
 
   private initializeFromConfig(): void {
-    this.isVertical = this.config.layout === "vertical";
+    this.layout = this.config.layout || "horizontal";
     this.draggableEntities = this.config.entities?.map((e) => this.toDraggableEntity(e)) || [
-      { id: "", key: this.newKey(), threshold: "" },
+      { id: "", key: this.newKey(), frequency_days: "" },
     ];
-    this.showMonths = this.config.show_months || false;
     this.image = this.config.image || "";
-    this.isUntilMode = this.config.mode === "until";
-    this.reverseOrder = this.config.reverse_order || false;
+    this.imagePosition = this.config.image_position || "start";
     this.filterOverdue = this.config.filter_overdue || false;
-    this.showLabels = this.config.show_labels || false;
     this.title = this.config.title || "";
     this.debug = this.config.debug || false;
   }
@@ -70,17 +64,12 @@ export class DatetimeCardEditor extends LitElement {
   private dispatchConfigChanged(): void {
     const type = "custom:datetime-card";
     const entities = this.draggableEntities.map((e) => this.toEntity(e));
-    const layout = this.isVertical ? "vertical" : "horizontal";
-    const mode = this.isUntilMode ? "until" : "since";
     const config: IConfig = {
       entities,
-      layout,
-      reverse_order: this.reverseOrder,
-      show_months: this.showMonths,
+      layout: this.layout,
+      image_position: this.imagePosition,
       image: this.image,
-      mode,
       filter_overdue: this.filterOverdue,
-      show_labels: this.showLabels,
       title: this.title,
       debug: this.debug,
       type,
@@ -101,21 +90,26 @@ export class DatetimeCardEditor extends LitElement {
     return { primaryText, secondaryText, value: entity_id };
   }
 
-  private toDraggableEntity({ friendly_name, id, threshold }: IEntity): DraggableEntity {
+  private toDraggableEntity({ friendly_name, id, frequency_days }: IEntity): DraggableEntity {
     return {
       friendly_name,
       id,
       key: this.newKey(),
-      threshold: threshold > 0 ? threshold.toString() : "",
+      frequency_days: frequency_days > 0 ? frequency_days.toString() : "",
     };
   }
 
-  private toEntity({ friendly_name, id, threshold }: DraggableEntity): IEntity {
-    return { friendly_name, id, threshold: parseInt(threshold) || 0 };
+  private toEntity({ friendly_name, id, frequency_days }: DraggableEntity): IEntity {
+    return {
+      friendly_name,
+      id,
+      frequency_days: parseInt(frequency_days) || 7,
+    };
   }
 
-  private updateLayout(event: InputEvent): void {
-    this.isVertical = event.target.checked;
+  private updateLayout(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    this.layout = select.value as "horizontal" | "vertical";
     this.dispatchConfigChanged();
   }
 
@@ -126,8 +120,9 @@ export class DatetimeCardEditor extends LitElement {
     this.dispatchConfigChanged();
   }
 
-  private updateShowMonths(event: InputEvent): void {
-    this.showMonths = event.target.checked;
+  private updateImagePosition(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    this.imagePosition = select.value as "start" | "end";
     this.dispatchConfigChanged();
   }
 
@@ -144,36 +139,21 @@ export class DatetimeCardEditor extends LitElement {
     this.dispatchConfigChanged();
   }
 
-  private updateThreshold(event: InputEvent, entity: DraggableEntity): void {
+  private updateFrequency(event: InputEvent, entity: DraggableEntity): void {
     const value = Number(event.target.value);
 
-    if (!Number.isInteger(value) || value < 0) {
-      event.target.value = entity.threshold;
+    if (!Number.isInteger(value) || value < 1) {
+      event.target.value = entity.frequency_days;
       return;
     }
 
     event.target.value = value.toString();
-    entity.threshold = value.toString();
-    this.dispatchConfigChanged();
-  }
-
-  private updateMode(event: InputEvent): void {
-    this.isUntilMode = event.target.checked;
-    this.dispatchConfigChanged();
-  }
-
-  private updateReverseOrder(event: InputEvent): void {
-    this.reverseOrder = event.target.checked;
+    entity.frequency_days = value.toString();
     this.dispatchConfigChanged();
   }
 
   private updateFilterOverdue(event: InputEvent): void {
     this.filterOverdue = event.target.checked;
-    this.dispatchConfigChanged();
-  }
-
-  private updateShowLabels(event: InputEvent): void {
-    this.showLabels = event.target.checked;
     this.dispatchConfigChanged();
   }
 
@@ -203,62 +183,50 @@ export class DatetimeCardEditor extends LitElement {
         @input=${this.updateImage}>
       </ha-textfield>
 
-      <section class="switches">
-        <ha-switch
-          id="vertical-layout-switch"
-          aria-label="Vertical layout"
-          ?checked=${this.isVertical}
-          @change=${this.updateLayout}>
-        </ha-switch>
-        <label for="vertical-layout-switch">Vertical layout</label>
+      <section class="options">
+        <div class="option-row">
+          <label for="layout-select">Layout</label>
+          <select
+            id="layout-select"
+            class="select"
+            .value=${this.layout}
+            @change=${this.updateLayout}>
+            <option value="horizontal">Horizontal</option>
+            <option value="vertical">Vertical</option>
+          </select>
+        </div>
 
-        <ha-switch
-          id="show-months-switch"
-          aria-label="Show months"
-          ?checked=${this.showMonths}
-          @change=${this.updateShowMonths}>
-        </ha-switch>
-        <label for="show-months-switch">Show months</label>
+        <div class="option-row">
+          <label for="image-position-select">Image Position</label>
+          <select
+            id="image-position-select"
+            class="select"
+            .value=${this.imagePosition}
+            @change=${this.updateImagePosition}>
+            <option value="start">${this.layout === "vertical" ? "Top" : "Left"}</option>
+            <option value="end">${this.layout === "vertical" ? "Bottom" : "Right"}</option>
+          </select>
+        </div>
 
-        <ha-switch
-          id="until-mode-switch"
-          aria-label="Until mode (countdown)"
-          ?checked=${this.isUntilMode}
-          @change=${this.updateMode}>
-        </ha-switch>
-        <label for="until-mode-switch">Until mode (countdown)</label>
+        <div class="option-row">
+          <ha-switch
+            id="filter-overdue-switch"
+            aria-label="Filter overdue only"
+            ?checked=${this.filterOverdue}
+            @change=${this.updateFilterOverdue}>
+          </ha-switch>
+          <label for="filter-overdue-switch">Filter overdue only</label>
+        </div>
 
-        <ha-switch
-          id="reverse-order-switch"
-          aria-label="Reverse order"
-          ?checked=${this.reverseOrder}
-          @change=${this.updateReverseOrder}>
-        </ha-switch>
-        <label for="reverse-order-switch">Reverse order</label>
-
-        <ha-switch
-          id="filter-overdue-switch"
-          aria-label="Filter overdue only"
-          ?checked=${this.filterOverdue}
-          @change=${this.updateFilterOverdue}>
-        </ha-switch>
-        <label for="filter-overdue-switch">Filter overdue only</label>
-
-        <ha-switch
-          id="show-labels-switch"
-          aria-label="Show labels on bars"
-          ?checked=${this.showLabels}
-          @change=${this.updateShowLabels}>
-        </ha-switch>
-        <label for="show-labels-switch">Show labels on bars</label>
-
-        <ha-switch
-          id="debug-switch"
-          aria-label="Show debug information"
-          ?checked=${this.debug}
-          @change=${this.updateDebug}>
-        </ha-switch>
-        <label for="debug-switch">Show debug information</label>
+        <div class="option-row">
+          <ha-switch
+            id="debug-switch"
+            aria-label="Show debug information"
+            ?checked=${this.debug}
+            @change=${this.updateDebug}>
+          </ha-switch>
+          <label for="debug-switch">Show debug information</label>
+        </div>
       </section>
 
       <h3>Entities (required)</h3>
@@ -282,11 +250,11 @@ export class DatetimeCardEditor extends LitElement {
               </datetime-card-autocomplete>
 
               <ha-textfield
-                data-testid="threshold-${index}"
-                class="threshold-textfield"
-                label="Threshold (days)"
-                .value=${entity.threshold}
-                @input=${(event: Event) => this.updateThreshold(event as InputEvent, entity)}>
+                data-testid="frequency-${index}"
+                class="frequency-textfield"
+                label="Frequency (days)"
+                .value=${entity.frequency_days}
+                @input=${(event: Event) => this.updateFrequency(event as InputEvent, entity)}>
               </ha-textfield>
 
               ${this.draggableEntities.length > 1 ? html`
@@ -360,9 +328,9 @@ export class DatetimeCardEditor extends LitElement {
       width: 32px;
     }
 
-    .threshold-textfield {
+    .frequency-textfield {
       margin: 0 0 0 5px;
-      max-width: 60px;
+      max-width: 80px;
     }
 
     .plus {
@@ -370,11 +338,31 @@ export class DatetimeCardEditor extends LitElement {
       justify-content: flex-end;
     }
 
-    .switches {
+    .options {
       display: flex;
-      flex-wrap: wrap;
-      gap: 16px 6px;
+      flex-direction: column;
+      gap: 12px;
       margin: 16px 0;
+    }
+
+    .option-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .option-row label {
+      flex: 0 0 140px;
+    }
+
+    .select {
+      flex: 1;
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid var(--divider-color, #ccc);
+      background: var(--card-background-color, #fff);
+      color: var(--primary-text-color);
+      font-size: 14px;
     }
   `;
 }

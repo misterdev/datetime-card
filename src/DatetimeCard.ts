@@ -1,10 +1,8 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import type { IConfig, IEntity, IHass } from './types';
-import { getState, isExpired } from './datetime/datetime';
-import './datetime/DatetimeIcon';
-import './datetime/DatetimeBar';
-import './datetime/DatetimeLabel';
+import { calculateDatetimeState, isExpired } from './datetime/datetime';
+import './datetime/DatetimeRow';
 
 function getDefaultEntities(hass: IHass): IEntity[] {
   const states = hass?.states || {};
@@ -12,8 +10,11 @@ function getDefaultEntities(hass: IHass): IEntity[] {
     id.startsWith("input_datetime"),
   );
 
-  const threshold = 2 * getState(hass, { id } as IEntity);
-  return id ? [{ id, threshold }] : [];
+  if (!id) return [];
+
+  const state = calculateDatetimeState(hass, { id, frequency_days: 7 } as IEntity);
+  const frequency_days = 7; // Default to weekly
+  return [{ id, frequency_days }];
 }
 
 @customElement('datetime-card')
@@ -37,29 +38,17 @@ export class DatetimeCard extends LitElement {
 
   get flexDirection(): "column" | "column-reverse" | "row" | "row-reverse" {
     const layout = this.config.layout || "horizontal";
-    const reverse = this.config.reverse_order || false;
+    const imagePosition = this.config.image_position || "start";
     const base = layout === "vertical" ? "column" : "row";
-    return reverse ? `${base}-reverse` as const : base;
-  }
-
-  get showMonths(): boolean {
-    return this.config.show_months || false;
+    return imagePosition === "end" ? `${base}-reverse` as const : base;
   }
 
   get header(): string {
     return this.config.title || "Datetime Card";
   }
 
-  get isUntilMode(): boolean {
-    return this.config.mode === "until";
-  }
-
   get filterOverdue(): boolean {
     return this.config.filter_overdue || false;
-  }
-
-  get showLabels(): boolean {
-    return this.config.show_labels || false;
   }
 
   get debug(): boolean {
@@ -83,35 +72,20 @@ export class DatetimeCard extends LitElement {
           style="flex-direction: ${this.flexDirection}">
           ${this.src ? html`<img src="${this.src}" alt="card-pict" />` : ''}
 
-          <div class="grid">
+          <div class="list">
             ${this.entities.map(entity => {
-              const shouldShow = !this.filterOverdue ||
-                isExpired(entity.threshold, this.isUntilMode, getState(this.hass, entity));
+              const state = calculateDatetimeState(this.hass, entity);
+              const shouldShow = !this.filterOverdue || isExpired(state);
 
-              return shouldShow ? html`
-                <datetime-icon
-                  role="listitem"
+              if (!shouldShow) return '';
+
+              return html`
+                <datetime-row
                   .entity=${entity}
                   .hass=${this.hass}
-                  .isUntilMode=${this.isUntilMode}>
-                </datetime-icon>
-
-                <datetime-bar
-                  .entity=${entity}
-                  .friendlyName=${entity.friendly_name || ''}
-                  .hass=${this.hass}
-                  .isUntilMode=${this.isUntilMode}
-                  .showLabels=${this.showLabels}>
-                </datetime-bar>
-
-                <datetime-label
-                  .entity=${entity}
-                  .showMonths=${this.showMonths}
-                  .hass=${this.hass}
-                  .isUntilMode=${this.isUntilMode}
                   .debug=${this.debug}>
-                </datetime-label>
-              ` : '';
+                </datetime-row>
+              `;
             })}
           </div>
         </div>
@@ -128,26 +102,26 @@ export class DatetimeCard extends LitElement {
 
     .card-content {
       display: flex;
-      justify-content: center;
-      align-items: center;
+      align-items: stretch;
+      gap: 16px;
+      padding: 8px;
+      overflow: hidden;
     }
 
     img {
-      max-width: 40%;
+      width: 200px;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 8px;
+      flex-shrink: 0;
     }
 
-    .grid {
-      display: grid;
-      flex-grow: 1;
-      grid-template-columns: 24px auto min-content;
-      margin: 10px;
-      gap: 10px;
-      align-items: center;
-      width: 100%;
-    }
-
-    datetime-label {
-      justify-self: end;
+    .list {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
   `;
 }

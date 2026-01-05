@@ -1,21 +1,17 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import type { IEntity, IHass } from '../types';
-import { getState, isExpired, resetDate } from './datetime';
+import type { IEntity, IHass, IDatetimeState } from '../types';
+import { calculateDatetimeState, isExpired, resetDate } from './datetime';
 import { holdDirective } from '../directives/hold-directive';
 
 @customElement('datetime-icon')
 export class DatetimeIcon extends LitElement {
   @property({ type: Object }) entity!: IEntity;
   @property({ type: Object }) hass!: IHass;
-  @property({ type: Boolean }) isUntilMode = false;
+  @property({ type: Object }) state?: IDatetimeState;
 
-  get threshold(): number {
-    return this.entity?.threshold || 0;
-  }
-
-  get state(): number {
-    return getState(this.hass, this.entity);
+  get datetimeState(): IDatetimeState {
+    return this.state || calculateDatetimeState(this.hass, this.entity);
   }
 
   get icon(): string {
@@ -23,7 +19,7 @@ export class DatetimeIcon extends LitElement {
   }
 
   get color(): "#df4c1e" | "#44739e" {
-    return isExpired(this.threshold, this.isUntilMode, this.state)
+    return isExpired(this.datetimeState)
       ? "#df4c1e"
       : "#44739e";
   }
@@ -40,7 +36,7 @@ export class DatetimeIcon extends LitElement {
         style="color: ${this.color}"
         title="hold to reset ${this.title}"
         ${holdDirective((event: CustomEvent) =>
-          resetDate(this.entity, event, this.hass, this.isUntilMode ? 1 : 0)
+          resetDate(this.entity, event, this.hass)
         )}>
       </ha-icon>
     `;
